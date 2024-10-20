@@ -1,35 +1,18 @@
 import { SubmitHandler, useForm } from 'react-hook-form';
-import { useEffect, useState } from 'react';
-import { z } from 'zod'
+import { useState } from 'react';
 import { zodResolver } from '@hookform/resolvers/zod'
 import './App.css'
-import axios from 'axios';
+import { formSchema, FormSchema, formWithOTP } from './validationSchema';
+import { handleSendRequest, postUsersSignin } from './requests';
 
-const formSchema = z
-.object({
-  phone: z
-  .string()
-  .min(1, {message: 'Поле является обязательным'}),
-})
 
-const formWithOTP = z.object({
-  phone: z
-  .string()
-  .min(1, {message: 'Поле является обязательным'}),
-  code: z
-  .string()
-  .length(6, {message:'Код должен содержать 6 цифр'})
-})
 
-type FormSchema= z.infer<typeof formWithOTP>
-
-const App = () => {
+export const App = () => {
   const [isPhoneSent, setIsPhoneSent] = useState(false);
 
   const {
     register,
     handleSubmit,
-    setFocus,
     setValue,
     formState: {errors},
   }=useForm<FormSchema>({ resolver: isPhoneSent ? zodResolver(formWithOTP) : zodResolver(formSchema) })
@@ -47,38 +30,7 @@ const App = () => {
     }
     await handleSendRequest(data);
     setIsPhoneSent(true);
-    console.log(data)
   };
-
-  const postUsersSignin = async (data:FormSchema) => {
-    try {
-      await axios.post('https://shift-backend.onrender.com/users/signin', data, {
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-    } catch (e) {
-      console.log(e);
-    }
-  }
-  
-  useEffect (() => {
-    setFocus('phone');
-},[setFocus]);
-
-const handleSendRequest = async (data: FormSchema) => {
-
-  try {
-    await axios.post('https://shift-backend.onrender.com/auth/otp', data, {
-      headers: {
-        'Content-Type': 'application/json',
-      },
-    });
-  } catch (e) {
-    console.log(e);
-  }
-};
-
 
   return (
   <div className='wrapper'>
@@ -92,11 +44,10 @@ const handleSendRequest = async (data: FormSchema) => {
         </span>)}
       </div>
       {isPhoneSent && (<div className='new-field'>
-          <label htmlFor='code' className='label'>Введите код из SMS</label>
+          <label htmlFor='code' className='label'>Введите проверочный код</label>
           <input {...register('code')} type="text" id="code" name="code" placeholder='Проверочный код' />
           {errors.code?.message &&(<span role = 'alert' className='error'>
-        {errors.code?.message}
-        </span>)}
+        {errors.code.message}</span>)}
         </div> )}
       <div className='button'>
         <button
@@ -105,9 +56,6 @@ const handleSendRequest = async (data: FormSchema) => {
           {isPhoneSent ? 'Войти' : 'Продолжить'} 
         </button>
       </div>
-      
     </form>
   </div>)
 }
-
-export default App
